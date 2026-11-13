@@ -3,6 +3,7 @@ import { BASE } from "./base";
 import { Shell } from "./Shell";
 import { SessionProvider } from "./session";
 import { Account } from "./pages/Account";
+import { AdminRedirect } from "./pages/AdminRedirect";
 import { Cart } from "./pages/Cart";
 import { Checkout } from "./pages/Checkout";
 import { Avis, Concept, Guide, Signature } from "./pages/Chapters";
@@ -19,6 +20,8 @@ export function App() {
     <BrowserRouter basename={BASE.replace(/\/$/, "") || undefined}>
       <SessionProvider>
         <Routes>
+          <Route path="/admin" element={<AdminRedirect />} />
+          <Route path="/admin/*" element={<AdminRedirect />} />
           <Route element={<Shell />}>
             <Route path="/" element={<Home />} />
             <Route path="/histoire" element={<Concept />} />
@@ -41,5 +44,4 @@ export function App() {
       </SessionProvider>
     </BrowserRouter>
   );
-  
 }

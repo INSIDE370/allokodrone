@@ -1,24 +1,8 @@
 {
-  "installCommand": "npm install && npm install --prefix web",
-  "buildCommand": "npm run vercel-build",
-  "outputDirectory": "public",
-  "framework": null,
   "rewrites": [
-    {
-      "source": "/admin",
-      "destination": "https://example-abu-sas-army.trycloudflare.com/admin"
-    },
-    {
-      "source": "/admin/:path*",
-      "destination": "https://example-abu-sas-army.trycloudflare.com/admin/:path*"
-    },
-    {
-      "source": "/api/:path*",
-      "destination": "https://example-abu-sas-army.trycloudflare.com/api/:path*"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
+    { "source": "/admin", "destination": "https://example-abu-sas-army.trycloudflare.com/admin" },
+    { "source": "/admin/:path*", "destination": "https://example-abu-sas-army.trycloudflare.com/admin/:path*" },
+    { "source": "/api/:path*", "destination": "https://example-abu-sas-army.trycloudflare.com/api/:path*" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

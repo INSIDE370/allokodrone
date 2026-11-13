@@ -192,7 +192,7 @@ export function Shell() {
               <li><Link className="hover:text-saffron" to="/carte">La carte</Link></li>
               <li><Link className="hover:text-saffron" to="/panier">Panier</Link></li>
               <li><Link className="hover:text-saffron" to="/contact">Contact</Link></li>
-              <li><a className="hover:text-saffron" href={adminUrl("/admin")} target="_blank" rel="noopener noreferrer">Admin</a></li>
+              <li><a className="hover:text-saffron" href={adminUrl("/admin")}>Admin</a></li>
             </ul>
           </div>
           <div>
