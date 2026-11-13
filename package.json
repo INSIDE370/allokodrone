@@ -3,7 +3,8 @@
   "private": true,
   "scripts": {
     "build:css": "tailwindcss -i css/input.css -o css/app.css --minify",
-    "build:web": "npm --prefix web run build"
+    "build:web": "npm --prefix web run build",
+    "vercel-build": "npm run build:web && node scripts/prepare-vercel.mjs"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.1.14",
