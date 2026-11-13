@@ -81,7 +81,19 @@ class Ctx:
         self.flash = flash
 
 
-def _cookie(sid, clear=False):
+def _cors_origins():
+    raw = os.environ.get(
+        "ALLOKO_CORS_ORIGINS",
+        "https://affouchatasylla.github.io,https://affouchataSylla.github.io,https://allokodrone.vercel.app,http://127.0.0.1:8080,http://localhost:8080,http://127.0.0.1:5173,http://localhost:5173",
+    )
+    return {item.strip().rstrip("/") for item in raw.split(",") if item.strip()}
+
+
+def _cookie(sid, clear=False, cross_site=False):
+    if cross_site:
+        if clear:
+            return "sid=; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=0"
+        return f"sid={sid}; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=1209600"
     if clear:
         return "sid=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0"
     return f"sid={sid}; HttpOnly; SameSite=Lax; Path=/; Max-Age=1209600"
@@ -175,10 +187,29 @@ def _static(path):
     return Response(200, target.read_bytes(), content_type=mime, headers=headers)
 
 
+def _cross_site(headers):
+    origin = (headers or {}).get("origin", "").strip().rstrip("/")
+    return bool(origin) and origin in _cors_origins()
+
+
+def _apply_cors(response, headers):
+    origin = (headers or {}).get("origin", "").strip().rstrip("/")
+    if origin and origin in _cors_origins():
+        response.headers.append(("Access-Control-Allow-Origin", origin))
+        response.headers.append(("Access-Control-Allow-Credentials", "true"))
+        response.headers.append(("Access-Control-Allow-Headers", "Content-Type, X-CSRF, Accept"))
+        response.headers.append(("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS"))
+        response.headers.append(("Vary", "Origin"))
+    return response
+
+
 def handle_http(conn, method, target, headers, body):
     parsed = urlparse(target)
     path = parsed.path
     query = parse_qs(parsed.query)
+    cross_site = _cross_site(headers)
+    if method == "OPTIONS":
+        return _apply_cors(Response(204, b""), headers)
     if method == "POST" and path == "/api/stripe/webhook":
         from app.stripe_pay import handle_webhook
 
@@ -227,8 +258,23 @@ def handle_http(conn, method, target, headers, body):
         else:
             response = Response(500, "Une erreur interne est survenue.")
     if new_sid and not any(header[0].lower() == "set-cookie" for header in response.headers):
-        response.headers.append(("Set-Cookie", _cookie(new_sid)))
-    return response
+        response.headers.append(("Set-Cookie", _cookie(new_sid, cross_site=cross_site)))
+    # Re-tag cookies issued by redirects for cross-site GitHub Pages → API
+    if cross_site:
+        patched = []
+        for key, value in response.headers:
+            if key.lower() == "set-cookie" and "SameSite=None" not in value:
+                if "Max-Age=0" in value or value.startswith("sid=;"):
+                    patched.append((key, _cookie("", clear=True, cross_site=True)))
+                elif value.startswith("sid="):
+                    sid = value.split(";", 1)[0].split("=", 1)[1]
+                    patched.append((key, _cookie(sid, cross_site=True)))
+                else:
+                    patched.append((key, value))
+            else:
+                patched.append((key, value))
+        response.headers = patched
+    return _apply_cors(response, headers)
 
 
 def dispatch(ctx, method, path, query, form, payload=None):
@@ -670,6 +716,9 @@ def main():
 
         def do_POST(self):
             self._serve("POST")
+
+        def do_OPTIONS(self):
+            self._serve("OPTIONS")
 
         def _serve(self, method):
             length = int(self.headers.get("Content-Length") or 0)

@@ -14,7 +14,7 @@ export function BrandCta({ slogan, address, mapsUrl }: BrandCtaProps) {
       <div className="flex flex-col gap-7 sm:flex-row sm:items-center sm:gap-10 lg:gap-12">
         <img
           className="h-16 w-auto max-w-[11rem] object-contain object-left sm:h-20 sm:max-w-[13rem] lg:h-24 lg:max-w-[15rem]"
-          src="/images/logo-dark.png"
+          src={`${import.meta.env.BASE_URL}images/logo-dark.png`}
           width={532}
           height={299}
           alt="ALLOKODRONE"

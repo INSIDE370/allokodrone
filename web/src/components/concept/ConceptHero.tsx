@@ -38,7 +38,7 @@ export function ConceptHero({
   lead,
   points = DEFAULT_POINTS,
   imageAlt = ALT_DEFAULT,
-  imageSrc = "/images/bowl-concept.png",
+  imageSrc = `${import.meta.env.BASE_URL}images/bowl-concept.png`,
   imageWidth = 1024,
   imageHeight = 603,
 }: ConceptHeroProps) {

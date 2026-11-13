@@ -41,7 +41,7 @@ export function Home() {
       <section id="accueil" className="relative -mt-16 min-h-[70svh] overflow-hidden bg-night md:-mt-20 md:min-h-svh">
         <video
           className="hero-drift absolute inset-0 h-full w-full object-cover"
-          src="/videos/hero.mp4"
+          src={`${import.meta.env.BASE_URL}videos/hero.mp4`}
           poster="/images/bowl.jpg"
           autoPlay
           muted
@@ -129,7 +129,7 @@ export function Home() {
           <span className="block overflow-hidden rounded-bl-[2rem] lg:rounded-bl-[3rem]">
             <img
               className="bowl-motion aspect-[5/4] w-full object-cover object-center"
-              src="/images/bowl.jpg"
+              src={`${import.meta.env.BASE_URL}images/bowl.jpg`}
               alt="Bowl ALLOKODRONE"
               loading="lazy"
             />
@@ -218,7 +218,7 @@ export function Home() {
             <span className="block min-h-[16rem] overflow-hidden lg:min-h-full">
               <img
                 className="h-full min-h-[16rem] w-full object-cover object-top transition duration-700 ease-out hover:scale-[1.03] lg:min-h-[28rem]"
-                src="/images/storefront.jpg"
+                src={`${import.meta.env.BASE_URL}images/storefront.jpg`}
                 alt="Devanture ALLOKODRONE, 24 rue Emmanuel Arago à Noisy-le-Sec"
                 loading="lazy"
               />

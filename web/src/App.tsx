@@ -1,4 +1,5 @@
 import { BrowserRouter, Route, Routes } from "react-router";
+import { BASE } from "./base";
 import { Shell } from "./Shell";
 import { SessionProvider } from "./session";
 import { Account } from "./pages/Account";
@@ -15,7 +16,7 @@ import { Product } from "./pages/Product";
 
 export function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={BASE.replace(/\/$/, "") || undefined}>
       <SessionProvider>
         <Routes>
           <Route element={<Shell />}>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { NavLink, Outlet, useLocation } from "react-router";
+import { Link, NavLink, Outlet, useLocation } from "react-router";
+import { adminUrl, asset } from "./base";
 import { ServiceBar } from "./ServiceBar";
 import { useSession } from "./session";
 
@@ -119,9 +120,9 @@ export function Shell() {
         ? "sticky top-0 z-40 bg-transparent text-cream [text-shadow:0_1px_2px_rgb(43_36_34_/_0.95),0_0_14px_rgb(43_36_34_/_0.8)]"
         : "sticky top-0 z-40 bg-night text-cream"}>
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 md:grid md:h-20 md:grid-cols-[auto_minmax(0,1fr)_auto] md:gap-10 md:px-8">
-          <a className="shrink-0" href="/">
-            <img className={`h-10 w-auto md:h-12 ${melted ? "drop-shadow-[0_2px_6px_rgba(28,22,18,0.9)]" : ""}`} src="/images/logo-light.png" width="532" height="299" alt="ALLOKODRONE" />
-          </a>
+          <Link className="shrink-0" to="/">
+            <img className={`h-10 w-auto md:h-12 ${melted ? "drop-shadow-[0_2px_6px_rgba(28,22,18,0.9)]" : ""}`} src={asset("images/logo-light.png")} width="532" height="299" alt="ALLOKODRONE" />
+          </Link>
           <nav className="hidden min-w-0 md:block" aria-label="Navigation principale">
             <ul className="flex items-center justify-center gap-6 whitespace-nowrap">
               {entries.map(([to, label]) => (
@@ -139,9 +140,9 @@ export function Shell() {
               Panier
               {count > 0 ? <span className="tabular-nums">{count}</span> : null}
             </NavLink>
-            <a className={hungry} href={count > 0 ? "/panier" : "/carte"}>
+            <Link className={hungry} to={count > 0 ? "/panier" : "/carte"}>
               J'ai faim
-            </a>
+            </Link>
             <button
               className="inline-flex h-10 w-10 items-center justify-center text-cream md:hidden"
               type="button"
@@ -181,16 +182,17 @@ export function Shell() {
       <footer className="mt-10 border-t border-line bg-night text-cream sm:mt-14">
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:grid-cols-2 lg:grid-cols-4">
           <div>
-            <a href="/">
-              <img className="h-14 w-auto" src="/images/logo-light.png" width="532" height="299" alt="ALLOKODRONE" />
-            </a>
+            <Link to="/">
+              <img className="h-14 w-auto" src={asset("images/logo-light.png")} width="532" height="299" alt="ALLOKODRONE" />
+            </Link>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-cream/75">L'Afrique servie à grande vitesse.</p>
           </div>
           <div>
             <ul className="space-y-2 text-sm lg:pt-1">
-              <li><a className="hover:text-saffron" href="/carte">La carte</a></li>
-              <li><a className="hover:text-saffron" href="/panier">Panier</a></li>
-              <li><a className="hover:text-saffron" href="/contact">Contact</a></li>
+              <li><Link className="hover:text-saffron" to="/carte">La carte</Link></li>
+              <li><Link className="hover:text-saffron" to="/panier">Panier</Link></li>
+              <li><Link className="hover:text-saffron" to="/contact">Contact</Link></li>
+              <li><a className="hover:text-saffron" href={adminUrl("/admin")} target="_blank" rel="noopener noreferrer">Admin</a></li>
             </ul>
           </div>
           <div>

@@ -1,3 +1,5 @@
+import { apiUrl } from "./base";
+
 export class ApiError extends Error {
   status: number;
   errors: string[];
@@ -12,6 +14,7 @@ export class ApiError extends Error {
 
 let csrf = "";
 let csrfWarm: Promise<void> | null = null;
+const credentials: RequestCredentials = apiUrl("/").startsWith("http") ? "include" : "same-origin";
 
 export function setCsrf(value: string) {
   csrf = value;
@@ -21,9 +24,9 @@ async function ensureCsrf() {
   if (csrf) return;
   if (!csrfWarm) {
     csrfWarm = (async () => {
-      const response = await fetch("/api/session", {
+      const response = await fetch(apiUrl("/api/session"), {
         method: "GET",
-        credentials: "same-origin",
+        credentials,
         headers: { Accept: "application/json" },
       });
       if (!response.ok) throw new ApiError(["Session indisponible. Rechargez la page."], response.status);
@@ -45,11 +48,12 @@ export async function api<T>(path: string, init?: { method?: string; body?: unkn
     headers["Content-Type"] = "application/json";
     headers["X-CSRF"] = csrf;
   }
+  const url = path.startsWith("http") ? path : apiUrl(path);
   let response: Response;
   try {
-    response = await fetch(path, {
+    response = await fetch(url, {
       method,
-      credentials: "same-origin",
+      credentials,
       headers,
       body: init?.body === undefined ? undefined : JSON.stringify(init.body),
     });
@@ -70,9 +74,9 @@ export async function api<T>(path: string, init?: { method?: string; body?: unkn
       csrf = "";
       await ensureCsrf();
       headers["X-CSRF"] = csrf;
-      const retry = await fetch(path, {
+      const retry = await fetch(url, {
         method,
-        credentials: "same-origin",
+        credentials,
         headers,
         body: init?.body === undefined ? undefined : JSON.stringify(init.body),
       });
