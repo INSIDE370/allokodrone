@@ -1,0 +1,725 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "Avenir";
+  src:
+    local("Avenir Book"),
+    local("Avenir"),
+    url("/fonts/Avenir-Book.woff2") format("woff2"),
+    url("/fonts/Avenir-Book.woff") format("woff"),
+    url("/fonts/Avenir-Book.ttf") format("truetype"),
+    url("/fonts/Avenir-Book.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Avenir";
+  src:
+    local("Avenir Medium"),
+    local("Avenir Next Medium"),
+    url("/fonts/Avenir-Medium.woff2") format("woff2"),
+    url("/fonts/Avenir-Medium.woff") format("woff"),
+    url("/fonts/Avenir-Medium.ttf") format("truetype"),
+    url("/fonts/Avenir-Medium.otf") format("opentype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Avenir";
+  src:
+    local("Avenir Medium"),
+    local("Avenir Next Medium"),
+    url("/fonts/Avenir-Medium.woff2") format("woff2"),
+    url("/fonts/Avenir-Medium.woff") format("woff"),
+    url("/fonts/Avenir-Medium.ttf") format("truetype"),
+    url("/fonts/Avenir-Medium.otf") format("opentype");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Avenir";
+  src:
+    local("Avenir Medium"),
+    local("Avenir Next Medium"),
+    url("/fonts/Avenir-Medium.woff2") format("woff2"),
+    url("/fonts/Avenir-Medium.woff") format("woff"),
+    url("/fonts/Avenir-Medium.ttf") format("truetype"),
+    url("/fonts/Avenir-Medium.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  --font-display: "Avenir", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-sans: "Avenir", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --color-ink: #251a16;
+  --color-ink-soft: #6a5a52;
+  --color-paper: #fff1df;
+  --color-paper-2: #f3e0c4;
+  --color-cream: #fff1df;
+  --color-terracotta: #ea550c;
+  --color-terracotta-deep: #c4470a;
+  --color-saffron: #f4a15a;
+  --color-line: #e8d4b5;
+  --color-night: #251a16;
+  --color-night-2: #3a2c26;
+  --color-black: #000000;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+
+::selection {
+  background: #ea550c;
+  color: #fff1df;
+}
+
+:focus-visible {
+  outline: 2px solid #ea550c;
+  outline-offset: 3px;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(1.15rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes settle {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes drift {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.06);
+  }
+}
+
+@keyframes bowl-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1.06);
+  }
+  50% {
+    transform: translate3d(0, -1.1%, 0) scale(1.1);
+  }
+}
+
+@keyframes pop {
+  from {
+    transform: scale(0.72);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.motion-rise {
+  animation: rise 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.motion-fade {
+  animation: settle 0.45s ease both;
+}
+
+.reveal {
+  animation: rise 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@supports (animation-timeline: view()) {
+  .reveal {
+    animation-timeline: view();
+    animation-range: entry 0% cover 30%;
+    animation-delay: 0s;
+  }
+}
+
+.motion-d1 {
+  animation-delay: 0.12s;
+}
+
+.motion-d2 {
+  animation-delay: 0.24s;
+}
+
+.motion-d3 {
+  animation-delay: 0.38s;
+}
+
+.motion-d4 {
+  animation-delay: 0.52s;
+}
+
+.hero-drift {
+  animation: drift 24s ease-in-out alternate infinite;
+}
+
+.bowl-motion {
+  animation: bowl-float 10s ease-in-out infinite;
+  will-change: transform;
+  transform-origin: center;
+}
+
+@keyframes concept-bowl-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -1.25%, 0);
+  }
+}
+
+/* Concept bowl: never crop or force a box — PNG keeps its own rounded shape */
+.concept-bowl-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  object-fit: contain;
+  object-position: center;
+  animation: concept-bowl-float 8s ease-in-out infinite;
+  will-change: transform;
+  transform-origin: center;
+}
+
+@keyframes concept-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.8rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.concept-reveal {
+  animation: concept-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@supports (animation-timeline: view()) {
+  .concept-reveal {
+    animation-timeline: view();
+    animation-range: entry 0% cover 28%;
+  }
+}
+
+.motion-pop {
+  animation: pop 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* —— Contact / Nous trouver (scoped) —— */
+.contact-page {
+  --c-bg: #3a2c26;
+  --c-bg-2: #4a3a32;
+  --c-kraft: #e3bc8a;
+  --c-paper: #f3e0c4;
+  --c-cream: #fff1df;
+  --c-ink: #251a16;
+  --c-orange: #ea550c;
+  --c-muted: #e8d4b5;
+  --c-line: #6a5a52;
+  background: var(--c-bg);
+  color: var(--c-cream);
+  font-family: var(--font-display);
+  padding: 3.5rem 0 4.5rem;
+}
+
+.contact-page :focus-visible {
+  outline: 3px solid var(--c-cream);
+  outline-offset: 3px;
+}
+
+.contact-shell {
+  width: min(1180px, calc(100% - 2rem));
+  margin-inline: auto;
+}
+
+.contact-hero-grid {
+  display: grid;
+  gap: 2.5rem;
+  align-items: start;
+}
+
+@media (min-width: 1024px) {
+  .contact-hero-grid {
+    grid-template-columns: 1.15fr 1fr;
+    gap: 72px;
+    align-items: center;
+  }
+}
+
+.contact-kicker {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--c-muted);
+}
+
+.contact-address {
+  margin: 1.25rem 0 0;
+  font-style: normal;
+}
+
+.contact-street {
+  display: block;
+  max-width: 12ch;
+  color: var(--c-kraft);
+  font-size: clamp(46px, 7.4vw, 96px);
+  font-weight: 800;
+  line-height: 0.94;
+  letter-spacing: -0.035em;
+}
+
+.contact-city {
+  display: block;
+  margin-top: 0.85rem;
+  color: var(--c-cream);
+  font-size: clamp(1.15rem, 2.2vw, 1.5rem);
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.contact-lead {
+  margin: 1.5rem 0 0;
+  max-width: 28rem;
+  color: var(--c-muted);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.contact-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.25rem 1.75rem;
+  margin-top: 1.75rem;
+}
+
+.contact-btn {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 18px 30px;
+  border-radius: 4px;
+  background: var(--c-orange);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.contact-btn:hover {
+  background: #c4470a;
+}
+
+.contact-ig {
+  color: var(--c-kraft);
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.28em;
+}
+
+.contact-ticket-wrap {
+  filter: drop-shadow(0 18px 28px rgb(0 0 0 / 0.45));
+}
+
+.contact-ticket {
+  position: relative;
+  padding: 1.6rem 1.45rem 1.35rem;
+  color: var(--c-ink);
+  background: linear-gradient(180deg, var(--c-paper) 0%, var(--c-kraft) 100%);
+  -webkit-mask:
+    linear-gradient(#000 0 0) top / 100% calc(100% - 10px) no-repeat,
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / 20px 10px repeat-x;
+  mask:
+    linear-gradient(#000 0 0) top / 100% calc(100% - 10px) no-repeat,
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / 20px 10px repeat-x;
+}
+
+@media (min-width: 768px) {
+  .contact-ticket {
+    transform: rotate(1.4deg);
+  }
+}
+
+.contact-stamp {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: grid;
+  place-items: center;
+  width: 4.6rem;
+  height: 4.6rem;
+  border: 2px solid var(--c-orange);
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 2px var(--c-orange);
+  color: var(--c-orange);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1.15;
+  text-align: center;
+  text-transform: uppercase;
+  transform: rotate(-14deg);
+}
+
+.contact-ticket-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-right: 4.5rem;
+}
+
+.contact-ticket-logo {
+  width: 3.4rem;
+  height: auto;
+  color: var(--c-ink);
+}
+
+.contact-ticket-brand {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.contact-ticket-place {
+  margin: 0.15rem 0 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+.contact-ticket-title {
+  margin: 1.35rem 0 0;
+  font-size: 2.125rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.contact-ticket-status {
+  margin: 0.55rem 0 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.contact-ticket-rule {
+  margin: 0.9rem 0;
+  border-top: 2px dotted rgb(42 26 20 / 0.35);
+}
+
+.contact-hours {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.contact-hours li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.65rem;
+  min-height: 2rem;
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+
+.contact-hours li + li {
+  margin-top: 0.35rem;
+}
+
+.contact-hours .is-today {
+  font-weight: 800;
+}
+
+.contact-day-pill {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border-radius: 2px;
+  background: var(--c-orange);
+  color: #fff;
+}
+
+.contact-hours-dots {
+  flex: 1 1 auto;
+  min-width: 1.5rem;
+  border-bottom: 2px dotted rgb(42 26 20 / 0.35);
+  transform: translateY(-0.25em);
+}
+
+.contact-hours time {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.contact-ticket-notes {
+  display: grid;
+  gap: 0.7rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.contact-ticket-notes p {
+  margin: 0;
+}
+
+.contact-ticket-link {
+  color: var(--c-ink);
+  font-weight: 800;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.22em;
+}
+
+.contact-barcode {
+  margin: 1.1rem auto 0.55rem;
+  width: min(100%, 14rem);
+  height: 2.4rem;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--c-ink) 0 2px,
+    transparent 2px 5px,
+    var(--c-ink) 5px 6px,
+    transparent 6px 10px,
+    var(--c-ink) 10px 13px,
+    transparent 13px 16px
+  );
+  opacity: 0.72;
+}
+
+.contact-thanks {
+  margin: 0;
+  text-align: center;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.contact-map-band {
+  margin-top: 88px;
+}
+
+.contact-map-frame {
+  overflow: hidden;
+  border: 1px solid var(--c-line);
+  border-radius: 6px;
+  background: var(--c-bg-2);
+}
+
+.contact-map-stage {
+  position: relative;
+  min-height: 320px;
+}
+
+@media (min-width: 768px) {
+  .contact-map-stage {
+    min-height: 380px;
+  }
+}
+
+.contact-map-iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  filter: grayscale(1) invert(0.92) contrast(0.88) brightness(0.72) sepia(0.28) hue-rotate(335deg);
+  pointer-events: none;
+}
+
+.contact-map-veil {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgb(58 44 38 / 0.45), transparent 38%),
+    linear-gradient(0deg, rgb(58 44 38 / 0.4), transparent 42%);
+  pointer-events: none;
+}
+
+.contact-map-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  color: var(--c-kraft);
+  pointer-events: none;
+}
+
+.contact-pin {
+  color: var(--c-orange);
+}
+
+.contact-drone {
+  color: var(--c-cream);
+  opacity: 0;
+}
+
+.contact-drone.is-visible {
+  opacity: 1;
+}
+
+.contact-map-tag {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 2;
+  display: grid;
+  gap: 0.15rem;
+  max-width: 12rem;
+  padding: 0.65rem 0.8rem;
+  border-radius: 3px;
+  background: var(--c-kraft);
+  color: var(--c-ink);
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.contact-map-tag span {
+  display: block;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.contact-map-caption {
+  position: static;
+  margin: 0;
+  padding: 0.9rem 1rem 1rem;
+  color: var(--c-cream);
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.45;
+  background: var(--c-bg-2);
+}
+
+@media (min-width: 768px) {
+  .contact-map-tag {
+    top: 36%;
+    right: auto;
+    left: 68%;
+  }
+
+  .contact-map-caption {
+    position: absolute;
+    right: auto;
+    bottom: 1.15rem;
+    left: 1.15rem;
+    z-index: 2;
+    max-width: 18rem;
+    padding: 0;
+    background: transparent;
+    text-shadow: 0 1px 8px rgb(0 0 0 / 0.55);
+  }
+}
+
+.contact-steps {
+  margin-top: 4rem;
+}
+
+.contact-steps-grid {
+  display: grid;
+  gap: 2rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: contact-step;
+}
+
+@media (min-width: 900px) {
+  .contact-steps-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
+  }
+
+  .contact-step + .contact-step {
+    border-left: 2px dotted var(--c-line);
+    padding-left: 1.75rem;
+  }
+
+  .contact-step {
+    padding-right: 1.75rem;
+  }
+}
+
+.contact-step-num {
+  display: block;
+  color: transparent;
+  font-size: 4rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 0.9;
+  -webkit-text-stroke: 1.5px var(--c-kraft);
+}
+
+.contact-step-title {
+  margin: 0.85rem 0 0;
+  color: var(--c-cream);
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.contact-step-body {
+  margin: 0.65rem 0 0;
+  max-width: 28ch;
+  color: var(--c-muted);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+    animation-timeline: auto !important;
+  }
+
+  .contact-ticket {
+    transform: none;
+  }
+}
