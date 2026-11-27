@@ -97,30 +97,30 @@ def active_points(conn):
     ).fetchall()
 
 
-def open_slots(conn, clock=None):
+def open_slots(conn, clock=None, days=7):
+    """Créneaux futurs avec places libres (fenêtre courte pour garder /api/session léger)."""
     moment = now_paris(clock)
     today = moment.date().isoformat()
     current = f"{moment.hour:02d}:{moment.minute:02d}"
-    rows = conn.execute(
+    until = (moment.date() + timedelta(days=max(1, int(days)))).isoformat()
+    return conn.execute(
         """
-        SELECT * FROM pickup_slots
-        WHERE active = 1 AND (slot_date > ? OR (slot_date = ? AND start_time > ?))
-        ORDER BY slot_date, start_time
+        SELECT s.*
+        FROM pickup_slots s
+        LEFT JOIN (
+            SELECT slot_id, COUNT(*) AS used
+            FROM orders
+            WHERE status != 'cancelled' AND slot_id IS NOT NULL
+            GROUP BY slot_id
+        ) o ON o.slot_id = s.id
+        WHERE s.active = 1
+          AND s.slot_date <= ?
+          AND (s.slot_date > ? OR (s.slot_date = ? AND s.start_time > ?))
+          AND COALESCE(o.used, 0) < s.capacity
+        ORDER BY s.slot_date, s.start_time, s.id
         """,
-        (today, today, current),
+        (until, today, today, current),
     ).fetchall()
-    available = []
-    for row in rows:
-        used = conn.execute(
-            """
-            SELECT COUNT(*) AS n FROM orders
-            WHERE slot_id = ? AND status != 'cancelled'
-            """,
-            (row["id"],),
-        ).fetchone()["n"]
-        if used < row["capacity"]:
-            available.append(row)
-    return available
 
 
 DEFAULT_SLOT_CAPACITY = 4

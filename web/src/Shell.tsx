@@ -6,26 +6,6 @@ import { PromotionPopup } from "./components/PromotionPopup";
 import { ServiceBar } from "./ServiceBar";
 import { useSession } from "./session";
 
-const link = "block text-sm tracking-wide transition-colors duration-300 hover:text-terracotta";
-
-function Item({ to, children, className = "" }: { to: string; children: string; className?: string }) {
-  return (
-    <NavLink
-      to={to}
-      end={to === "/"}
-      className={({ isActive }) =>
-        `${link} ${className} ${
-          isActive
-            ? "text-terracotta underline decoration-2 underline-offset-[0.55rem]"
-            : "text-cream"
-        }`
-      }
-    >
-      {children}
-    </NavLink>
-  );
-}
-
 function BasketMark() {
   return (
     <svg className="h-[18px] w-[18px] shrink-0" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -38,29 +18,30 @@ function BasketMark() {
   );
 }
 
-const hungry =
-  "inline-flex h-9 shrink-0 items-center rounded-xl border border-cream/80 bg-terracotta px-3 text-[0.7rem] font-semibold uppercase tracking-[0.12em] text-white transition-colors duration-300 hover:bg-terracotta-deep sm:h-10 sm:px-5 sm:text-sm";
-const cartLink =
-  "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-cream/75 bg-transparent px-2.5 text-[0.7rem] font-semibold uppercase tracking-[0.12em] text-cream transition-colors duration-300 hover:border-cream sm:h-10 sm:gap-2 sm:px-4 sm:text-sm";
-
-function MenuMark({ open }: { open: boolean }) {
+function Item({ to, children, className = "", end }: { to: string; children: React.ReactNode; className?: string; end?: boolean }) {
   return (
-    <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.6">
-      {open ? (
-        <>
-          <path d="M5 5l12 12" />
-          <path d="M17 5L5 17" />
-        </>
-      ) : (
-        <>
-          <path d="M3 6h16" />
-          <path d="M3 11h16" />
-          <path d="M3 16h16" />
-        </>
-      )}
-    </svg>
+    <NavLink
+      to={to}
+      end={end}
+      className={({ isActive }) =>
+        `text-[11.5px] font-bold uppercase tracking-[0.22em] transition-opacity duration-200 hover:opacity-100 ${className} ${
+          isActive ? "opacity-100 text-saffron" : "opacity-70 text-paper-2"
+        }`
+      }
+    >
+      {children}
+    </NavLink>
   );
 }
+
+const TICKER = [
+  "Afro street food",
+  "Noisy-le-Sec (93)",
+  "Click & collect",
+  "Ouvert 7j/7",
+  "Fait maison",
+  "Burgers yassa · bowls · wings · alloko",
+];
 
 export function Shell() {
   const { session, error, refresh } = useSession();
@@ -69,13 +50,12 @@ export function Shell() {
   const count = session?.cartCount ?? 0;
   const restaurant = session?.restaurant;
   const home = pathname === "/";
-  const entries: [string, string][] = [
+  const entries: [string, React.ReactNode][] = [
     ["/", "Accueil"],
-    ["/concept", "Concept"],
-    ["/signature", "Signature"],
+    ["/signature", "Signatures"],
     ["/carte", "La carte"],
     ["/avis", "Avis"],
-    ["/contact", "Nous trouver"],
+    ["/contact", "Le spot"],
   ];
 
   useEffect(() => {
@@ -102,70 +82,84 @@ export function Shell() {
         Aller au contenu
       </a>
 
-      <header className="relative z-50 shrink-0 border-b border-cream/10 bg-night text-cream">
-        <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 md:h-[4.5rem] md:gap-6 md:px-6 lg:gap-8 lg:px-8">
-          <Link className="flex h-10 w-[9.5rem] shrink-0 items-center overflow-hidden md:h-11 md:w-[11rem]" to="/">
+      <div className="cs-tick" aria-hidden="true">
+        <div className="cs-tick__track">
+          {TICKER.map((item) => (
+            <span key={`a-${item}`}>{item}</span>
+          ))}
+          {TICKER.map((item) => (
+            <span key={`b-${item}`}>{item}</span>
+          ))}
+        </div>
+      </div>
+
+      <header className="relative sticky top-0 z-50 shrink-0 border-b border-paper-2/15 bg-night text-paper-2">
+        <div className="cs-wrap flex h-20 items-center justify-between gap-4 md:h-[94px]">
+          <Link className="flex h-[66px] w-auto shrink-0 items-center overflow-hidden md:h-20" to="/">
             <img
-              className="max-h-10 w-auto max-w-full object-contain object-left md:max-h-11"
+              className="max-h-full w-auto max-w-[11rem] object-contain object-left md:max-w-[13rem]"
               src={asset("images/logo-light.png")}
               width="176"
               height="99"
-              alt="ALLOKODRONE"
+              alt="ALLOKODRONE — L'Afrique servie à grande vitesse"
             />
           </Link>
 
           <nav className="hidden min-w-0 flex-1 lg:block" aria-label="Navigation principale">
-            <ul className="flex items-center justify-center gap-5 xl:gap-7">
+            <ul className="flex items-center justify-center gap-7 xl:gap-8">
               {entries.map(([to, label]) => (
                 <li key={to}>
-                  <Item to={to}>{label}</Item>
+                  <Item to={to} end={to === "/"}>
+                    {label}
+                  </Item>
                 </li>
               ))}
             </ul>
           </nav>
 
-          <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <NavLink
               to="/panier"
               className={({ isActive }) =>
-                `${cartLink} ${isActive ? "border-terracotta text-terracotta" : ""} max-lg:h-10 max-lg:min-w-10 max-lg:justify-center max-lg:gap-1 max-lg:px-2`
+                `inline-flex h-11 min-w-11 items-center justify-center gap-2 rounded-full border border-paper-2/25 px-3 text-[11px] font-bold uppercase tracking-[0.18em] text-paper-2 transition-colors hover:border-paper-2 sm:px-4 ${
+                  isActive ? "border-saffron text-saffron" : ""
+                }`
               }
               aria-label={count > 0 ? `Panier, ${count} article${count > 1 ? "s" : ""}` : "Panier"}
             >
               <BasketMark />
-              <span className="hidden lg:inline">Panier</span>
-              {count > 0 ? <span className="tabular-nums text-[0.65rem] lg:text-[0.7rem]">{count}</span> : null}
+              <span className="hidden sm:inline">Panier</span>
+              {count > 0 ? <span className="tabular-nums text-saffron">{count}</span> : null}
             </NavLink>
-            <Link className={`${hungry} hidden lg:inline-flex`} to={count > 0 ? "/panier" : "/carte"}>
-              J&apos;ai faim
+            <Link className="cs-btn hidden !px-[22px] !py-3.5 lg:inline-flex" to={count > 0 ? "/panier" : "/carte"}>
+              Commander <span className="ar">→</span>
             </Link>
             <button
-              className="inline-flex h-10 w-10 items-center justify-center text-cream lg:hidden"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-paper-2/20 text-paper-2 lg:hidden"
               type="button"
               aria-expanded={menuOpen}
               aria-controls="menu-mobile"
               aria-label={menuOpen ? "Fermer le menu" : "Ouvrir le menu"}
               onClick={() => setMenuOpen((open) => !open)}
             >
-              <MenuMark open={menuOpen} />
+              {menuOpen ? "✕" : "☰"}
             </button>
           </div>
         </div>
 
         <nav
           id="menu-mobile"
-          className={`${menuOpen ? "block" : "hidden"} border-t border-cream/15 bg-night px-4 py-2 lg:hidden`}
+          className={`${menuOpen ? "flex" : "hidden"} absolute left-0 right-0 top-full flex-col gap-4 border-b border-paper-2/15 bg-night px-6 py-6 lg:hidden`}
           aria-label="Sections"
         >
-          <ul className="flex flex-col">
-            {entries.map(([to, label]) => (
-              <li key={to} className="border-b border-cream/10 last:border-b-0">
-                <Item className="py-3 text-base" to={to}>
-                  {label}
-                </Item>
-              </li>
-            ))}
-          </ul>
+          {entries.map(([to, label]) => (
+            <Item key={to} className="!text-sm !opacity-90" to={to} end={to === "/"}>
+              {label}
+            </Item>
+          ))}
+          <Link className="cs-btn mt-2 w-fit" to={count > 0 ? "/panier" : "/carte"}>
+            Commander <span className="ar">→</span>
+          </Link>
         </nav>
       </header>
 
@@ -186,54 +180,49 @@ export function Shell() {
         </div>
       </main>
 
-      <footer className="relative z-0 mt-auto bg-night text-cream">
-        <div className="mx-auto grid max-w-6xl gap-8 px-4 py-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-7 lg:px-8 lg:py-10">
+      <footer className="site-footer relative z-0 mt-auto overflow-hidden bg-black text-paper-2/70">
+        <div className="cs-wrap grid grid-cols-1 gap-10 pt-10 pb-8 sm:grid-cols-2 md:grid-cols-4 md:gap-8 md:pt-14 md:pb-10">
           <div>
-            <Link to="/" className="inline-block">
-              <img className="max-h-12 w-auto max-w-[10rem] object-contain" src={asset("images/logo-light.png")} width="176" height="99" alt="ALLOKODRONE" />
+            <Link to="/" className="inline-block shrink-0">
+              <img className="w-[150px] max-w-full md:w-[170px]" src={asset("images/logo-light.png")} width="200" height="112" alt="ALLOKODRONE" />
             </Link>
-            <p className="mt-4 max-w-[14rem] text-[0.7rem] font-semibold uppercase leading-relaxed tracking-[0.14em] text-cream/85">
-              L&apos;Afrique servie à grande vitesse.
-            </p>
           </div>
-          <nav aria-label="Pied de page" className="text-sm lg:pt-2">
-            <ul className="space-y-2.5">
-              <li>
-                <Link className="transition-colors hover:text-terracotta" to="/carte">
-                  La carte
-                </Link>
-              </li>
-              <li>
-                <Link className="transition-colors hover:text-terracotta" to="/panier">
-                  Panier
-                </Link>
-              </li>
-              <li>
-                <Link className="transition-colors hover:text-terracotta" to="/contact">
-                  Contact
-                </Link>
-              </li>
-            </ul>
+
+          <nav className="flex flex-col gap-3 text-[15px] text-paper-2/80" aria-label="Pied de page">
+            <Link className="hover:text-saffron" to="/carte">
+              La carte
+            </Link>
+            <Link className="hover:text-saffron" to="/panier">
+              Panier
+            </Link>
+            <Link className="hover:text-saffron" to="/contact">
+              Contact
+            </Link>
           </nav>
-          <div className="lg:pt-1">
-            <h2 className="text-sm font-semibold tracking-wide">Restaurant</h2>
-            <ul className="mt-4 space-y-3 text-sm text-cream/80">
+
+          <div>
+            <h3 className="text-[15px] font-bold text-paper-2">Restaurant</h3>
+            <ul className="mt-4 space-y-3 text-sm text-paper-2/75">
               <li className="flex items-start gap-2.5">
-                <PinMark className="mt-0.5 h-[18px] w-[18px] shrink-0 text-terracotta" />
+                <PinMark className="mt-0.5 h-4 w-4 shrink-0 text-terracotta" />
                 <span>{restaurant?.address ?? "24 rue Emmanuel Arago, 93130 Noisy-le-Sec"}</span>
               </li>
-              {(restaurant?.hoursLines?.length
-                ? restaurant.hoursLines
-                : [restaurant?.hoursLabel ?? "Lundi – samedi : 11h30 – 22h30"]
-              ).map((line) => (
-                <li key={line} className="flex items-start gap-2.5">
-                  <CalendarMark className="mt-0.5 h-[18px] w-[18px] shrink-0 text-terracotta" />
-                  <span>{line.replace(/ · /g, " : ")}</span>
-                </li>
-              ))}
+              {(
+                restaurant?.hoursLines ?? [
+                  "Lundi – samedi : 11h30 – 22h30",
+                  "Dimanche : 17h00 – 22h30",
+                ]
+              )
+                .filter(Boolean)
+                .map((line) => (
+                  <li key={String(line)} className="flex items-start gap-2.5">
+                    <CalendarMark className="mt-0.5 h-4 w-4 shrink-0 text-terracotta" />
+                    <span>{String(line).replace(/ · /g, " : ")}</span>
+                  </li>
+                ))}
               <li>
                 <a
-                  className="inline-flex items-center gap-2.5 transition-colors hover:text-terracotta"
+                  className="inline-flex items-center gap-2.5 hover:text-saffron"
                   href={
                     restaurant?.maps ??
                     "https://www.google.com/maps/dir/?api=1&destination=24+rue+Emmanuel+Arago+93130+Noisy-le-Sec"
@@ -241,35 +230,42 @@ export function Shell() {
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  <PlaneMark className="h-[18px] w-[18px] shrink-0 text-terracotta" />
+                  <PlaneMark className="h-4 w-4 shrink-0 text-terracotta" />
                   Itinéraire
                 </a>
               </li>
             </ul>
           </div>
-          <div className="lg:pt-1">
-            <h2 className="text-sm font-semibold tracking-wide">Réseaux</h2>
-            <ul className="mt-4 space-y-3 text-sm">
-              <li>
-                <a
-                  className="inline-flex items-center gap-2.5 transition-colors hover:text-terracotta"
-                  href={restaurant?.instagram ?? "https://www.instagram.com/alloko_drone/"}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <InstagramMark className="h-[18px] w-[18px] shrink-0 text-terracotta" />
-                  Instagram
-                </a>
-              </li>
-            </ul>
+
+          <div>
+            <h3 className="text-[15px] font-bold text-paper-2">Réseaux</h3>
+            <a
+              className="mt-4 inline-flex items-center gap-2.5 text-sm text-paper-2/75 hover:text-saffron"
+              href={restaurant?.instagram ?? "https://www.instagram.com/alloko_drone/"}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <InstagramMark className="h-4 w-4 shrink-0 text-terracotta" />
+              Instagram
+            </a>
           </div>
         </div>
-        <div className="border-t border-cream/20">
-          <p className="mx-auto max-w-6xl px-4 py-4 text-center text-xs text-cream/55 lg:px-8">
-            © 2026 ALLOKODRONE. Tous droits réservés.
-          </p>
+
+        <div className="cs-wrap border-t border-paper-2/15 py-5 text-xs tracking-[0.06em] text-paper-2/45">
+          © 2026 ALLOKODRONE. Tous droits réservés.
+        </div>
+
+        <div className="cs-foot-marquee" aria-hidden="true">
+          <div className="cs-foot-marquee__track">
+            {Array.from({ length: 4 }, (_, index) => (
+              <span key={index} className="cs-foot-marquee__item">
+                L&apos;Afrique servie à grande vitesse
+              </span>
+            ))}
+          </div>
         </div>
       </footer>
+
       <PromotionPopup pathname={pathname} />
     </div>
   );

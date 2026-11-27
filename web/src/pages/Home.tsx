@@ -1,28 +1,37 @@
-import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router";
 import { api, ApiError } from "../api";
-import {
-  ArrowMark,
-  BagMark,
-  CalendarMark,
-  InfoMark,
-  InstagramMark,
-  PinMark,
-} from "../components/brand/Marks";
+import { asset } from "../base";
 import { ServiceBar } from "../ServiceBar";
-import type { Category, HomePayload, HomeReview, Product } from "../types";
-import { Alert, btn, btnGhost, btnLine, Pending, Reveal, useTitle } from "../ui";
+import { useSession } from "../session";
+import type { CatalogPayload, HomePayload, Product } from "../types";
+import { Alert, Reveal, useTitle } from "../ui";
+
+function shortName(name: string) {
+  return name
+    .replace(/^DKR Beef\s*[—–-]\s*/i, "DKR Beef")
+    .replace(/\s*[—–-].*$/, "")
+    .trim();
+}
+
+function isVeggie(product: Product) {
+  return /veggie|végét|veget/i.test(`${product.name} ${product.description}`);
+}
 
 export function Home() {
   useTitle("Commander");
+  const navigate = useNavigate();
+  const { setCartCount, push } = useSession();
   const [data, setData] = useState<HomePayload | null>(null);
+  const [catalog, setCatalog] = useState<CatalogPayload | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
+  const [pendingId, setPendingId] = useState<number | null>(null);
 
   useEffect(() => {
     const id = window.location.hash.replace("#", "");
     if (!id) return;
     document.getElementById(id)?.scrollIntoView({ behavior: "instant", block: "start" });
-  }, [data]);
+  }, [data, catalog]);
 
   useEffect(() => {
     let cancel = false;
@@ -33,442 +42,477 @@ export function Home() {
       .catch((error: unknown) => {
         if (!cancel) setErrors([error instanceof ApiError ? error.message : "Connexion interrompue. Réessayez."]);
       });
+    const loadCatalog = () => {
+      api<CatalogPayload>("/api/catalogue")
+        .then((payload) => {
+          if (!cancel) setCatalog(payload);
+        })
+        .catch(() => {
+          /* aperçu carte optionnel */
+        });
+    };
+    const idle =
+      "requestIdleCallback" in window
+        ? window.requestIdleCallback(loadCatalog, { timeout: 1200 })
+        : window.setTimeout(loadCatalog, 200);
     return () => {
       cancel = true;
+      if ("cancelIdleCallback" in window && typeof idle === "number") {
+        window.cancelIdleCallback(idle);
+      } else {
+        window.clearTimeout(idle);
+      }
     };
   }, []);
 
-  const loading = !data && !errors.length;
   const featured = data?.featured ?? [];
   const lead = featured.find((item) => item.image) ?? featured[0];
-  const categories = data?.categories ?? [];
+  const signatures = featured.slice(0, 4);
   const restaurant = data?.restaurant;
-  const googleReviews = restaurant
-    ? restaurant.review.reviews.length
-      ? restaurant.review.reviews
-      : [{ author: restaurant.review.author, quote: restaurant.review.quote }]
-    : [];
-  const googleReviewUrl = restaurant
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${restaurant.name} ${restaurant.address}`)}`
-    : null;
+  const openLabel = restaurant?.deliveryOpen ? "Ouvert" : "Retrait";
+  const carteSections = (() => {
+    const map = new Map<string, Product[]>();
+    for (const product of catalog?.products ?? []) {
+      const key = product.categoryName || "Autres";
+      const list = map.get(key) ?? [];
+      list.push(product);
+      map.set(key, list);
+    }
+    return [...map.entries()].slice(0, 4);
+  })();
+
+  async function addProduct(product: Product) {
+    if (!product.orderable || !product.priceConfirmed) {
+      navigate(`/produit/${product.slug}`);
+      return;
+    }
+    if (product.hasOptions) {
+      navigate(`/produit/${product.slug}`);
+      return;
+    }
+    setPendingId(product.id);
+    try {
+      const result = await api<{ cartCount: number }>("/api/panier/ajouter", {
+        method: "POST",
+        body: { produit: product.id, quantite: 1, choix: [], notes: "" },
+      });
+      setCartCount(result.cartCount);
+      push(`${shortName(product.name)} ajouté au panier`);
+    } catch (error: unknown) {
+      setErrors([error instanceof ApiError ? error.message : "Connexion interrompue. Réessayez."]);
+    } finally {
+      setPendingId(null);
+    }
+  }
 
   return (
     <>
-      <section id="accueil" className="home-hero" aria-labelledby="home-hero-title">
-        <div className="home-hero__media" aria-hidden="true">
-          <img
-            className="home-hero__photo"
-            src={`${import.meta.env.BASE_URL}images/burger-hero.jpg`}
-            alt=""
-            width={1310}
-            height={831}
-            fetchPriority="high"
-            decoding="async"
-          />
-        </div>
-        <div className="home-hero__panel" aria-hidden="true" />
-
-        <div className="home-hero__content">
-          <div className="home-hero__copy">
-            <p className="home-hero__eyebrow motion-rise">Afro street food · Noisy-le-Sec</p>
-            <h1 id="home-hero-title" className="home-hero__title motion-rise motion-d1">
-              L&apos;Afrique servie
+      <section id="accueil" className="home-hero cs-grain" aria-labelledby="home-hero-title">
+        <div className="home-hero__stage">
+          <div className="home-hero__bg" aria-hidden="true">
+            <img
+              src={`${import.meta.env.BASE_URL}images/burger-hero.jpg`}
+              alt=""
+              width={1310}
+              height={831}
+              fetchPriority="high"
+              decoding="async"
+            />
+          </div>
+          {lead ? (
+            <span className="home-hero__tag">
+              Signature · <b>{shortName(lead.name)}</b>
+              {lead.priceLabel ? ` · ${lead.priceLabel}` : null}
+            </span>
+          ) : null}
+          <div className="cs-wrap home-hero__inner">
+            <p className="home-hero__eyebrow cs-k">Afro street food — Noisy-le-Sec (93)</p>
+            <h1 id="home-hero-title" className="home-hero__title cs-big">
+              L&apos;Afrique
               <br />
-              <span className="home-hero__title-accent">à grande vitesse</span>
+              <span className="out">servie à</span>
+              <br />
+              <span className="o">grande vitesse</span>
             </h1>
-            <p className="home-hero__lead motion-rise motion-d2">
-              Burgers yassa, bowls à composer, wings et alloko. Vous choisissez, vous personnalisez, vous retirez au comptoir.
-            </p>
-            <div className="home-hero__actions motion-rise motion-d3">
-              <Link className="home-hero__btn home-hero__btn--primary" to="/carte">
-                Commander
-                <ArrowMark className="h-3.5 w-3.5" />
-              </Link>
-              <Link className="home-hero__btn home-hero__btn--ghost" to="/signature">
-                Les spécialités
+            <div className="home-hero__row">
+              <p>
+                Burgers yassa, bowls à composer, wings et alloko. Vous choisissez, vous personnalisez, vous retirez au
+                comptoir.
+              </p>
+              <div>
+                <small>Aujourd&apos;hui</small>
+                <b className="home-hero__live">{openLabel}</b>
+              </div>
+              <div>
+                <small>Retrait</small>
+                <b>Au comptoir</b>
+              </div>
+              <div>
+                <small>Spot</small>
+                <b>24 rue E. Arago</b>
+              </div>
+              <Link className="cs-btn home-hero__cta" to="/carte">
+                Commander à emporter <span className="ar">→</span>
               </Link>
             </div>
           </div>
         </div>
-
-        <img
-          className="home-hero__photo-mobile"
-          src={`${import.meta.env.BASE_URL}images/burger-hero.jpg`}
-          alt="Burger yassa ALLOKODRONE"
-          width={1310}
-          height={831}
-          decoding="async"
-        />
       </section>
 
       <ServiceBar />
 
-      <div className="mx-auto max-w-6xl px-4 pt-5 md:px-5">
-        <Alert errors={errors} />
-        {loading ? <Pending /> : null}
+      {errors.length ? (
+        <div className="cs-wrap pt-5">
+          <Alert errors={errors} />
+        </div>
+      ) : null}
+
+      <section id="signatures" className="cs-sec scroll-mt-28">
+        <div className="cs-wrap">
+          <Reveal>
+            <div className="cs-head">
+              <div>
+                <div className="cs-idx">Notre signature</div>
+                <h2 className="cs-big">Les signatures</h2>
+              </div>
+              <Link className="cs-ul" to="/carte">
+                Toute la carte →
+              </Link>
+            </div>
+            <div className="cs-drops">
+              {signatures.map((product) => {
+                const compose = product.hasOptions;
+                return (
+                  <article key={product.id} className="cs-drop">
+                    <Link className="contents text-inherit no-underline" to={`/produit/${product.slug}`}>
+                      <div className="cs-drop__top">
+                        <span>{product.categoryName}</span>
+                        <em>Signature</em>
+                      </div>
+                      <div className="cs-drop__ph">
+                        {product.image ? (
+                          <img src={product.image} alt={shortName(product.name)} loading="lazy" />
+                        ) : null}
+                      </div>
+                      <h3>{shortName(product.name)}</h3>
+                      <p>{product.description}</p>
+                    </Link>
+                    <div className="cs-drop__bt">
+                      <span className="cs-drop__pr">{product.priceLabel || "—"}</span>
+                      <button
+                        className="cs-drop__add"
+                        type="button"
+                        disabled={pendingId === product.id}
+                        onClick={() => void addProduct(product)}
+                      >
+                        {pendingId === product.id ? "…" : compose ? "Composer +" : "Ajouter +"}
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      <div className="overflow-hidden whitespace-nowrap border-y border-night bg-terracotta text-night" aria-hidden="true">
+        <div className="cs-tick__track !py-[26px]" style={{ animationDuration: "30s" }}>
+          {["Fait maison", "À emporter", "7 jours sur 7", "Noisy-le-Sec", "Fait maison", "À emporter", "7 jours sur 7", "Noisy-le-Sec"].map(
+            (item, index) => (
+              <span
+                key={`${item}-${index}`}
+                className="inline-flex items-center gap-11 pr-11 text-[clamp(46px,6vw,92px)] font-black uppercase leading-none tracking-[-0.03em] odd:text-transparent odd:[-webkit-text-stroke:1.5px_var(--color-night)]"
+              >
+                {item}
+              </span>
+            ),
+          )}
+        </div>
       </div>
 
-      <section id="signatures" className="scroll-mt-24 overflow-x-clip bg-paper text-ink">
-        <Reveal className="mx-auto max-w-6xl px-4 py-8 lg:py-10">
-          <div className="min-w-0">
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-terracotta">Notre signature</p>
-            <h2 className="mt-3 max-w-[16ch] font-display text-[clamp(2.1rem,8vw,3.75rem)] leading-[0.92]">
-              Des recettes qui font <span className="italic text-terracotta">voyager</span>
-            </h2>
+      {lead ? (
+        <section className="grid min-h-0 grid-cols-1 md:min-h-[720px] md:grid-cols-[1.15fr_0.85fr]">
+          <div className="relative min-h-[320px] overflow-hidden md:min-h-0">
+            {lead.image ? (
+              <img className="absolute inset-0 h-full w-full object-cover" src={lead.image} alt={shortName(lead.name)} loading="lazy" />
+            ) : null}
+            <span className="absolute bottom-7 left-7 bg-cream px-4 py-3 text-[11px] font-bold uppercase tracking-[0.22em]">
+              Focus
+            </span>
           </div>
-          <div className="mt-6 grid min-w-0 items-stretch gap-6 sm:mt-8 sm:gap-7 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-8">
-            {lead ? <Feature lead={lead} large film={data?.signatureVideo} /> : <div className="bg-paper-2" aria-hidden="true" />}
-            <div className="flex min-h-0 min-w-0 flex-col">
-              <div className="min-h-0 max-h-[min(24rem,62vh)] flex-1 overflow-y-auto overscroll-contain rounded-xl border border-line bg-cream [scrollbar-color:rgba(37,26,22,0.25)_transparent] [scrollbar-width:thin] sm:max-h-[min(28rem,64vh)] lg:max-h-[min(42rem,82vh)]">
-                <ul className="flex flex-col" aria-label="Catégories">
-                  {categories.map((category, index) => (
-                    <li key={category.slug} className="border-b border-line last:border-b-0">
-                      <CategoryRow category={category} index={index} />
-                    </li>
-                  ))}
-                </ul>
+          <div className="cs-grain flex flex-col bg-night px-5 py-12 text-paper-2 sm:px-8 md:px-16 md:py-16">
+            <span className="cs-idx !text-saffron">{lead.categoryName}</span>
+            <h2 className="cs-big mt-5 text-[clamp(40px,10vw,88px)] text-cream">
+              {shortName(lead.name).split(" ").map((word, index) => (
+                <span key={`${word}-${index}`}>
+                  {index > 0 ? <br /> : null}
+                  {word}
+                </span>
+              ))}
+              <small className="mt-4 block text-[0.22em] font-bold uppercase tracking-[0.3em] text-saffron">
+                {lead.description.slice(0, 48)}
+                {lead.description.length > 48 ? "…" : ""}
+              </small>
+            </h2>
+            <p className="mt-8 max-w-[36ch] text-[15px] text-paper-2/70 sm:text-[15.5px]">{lead.description}</p>
+            <div className="mt-auto flex flex-wrap items-center justify-between gap-5 pt-11">
+              <span className="text-[40px] font-light tracking-[-0.03em] text-cream sm:text-[52px]">{lead.priceLabel}</span>
+              <button className="cs-btn" type="button" disabled={pendingId === lead.id} onClick={() => void addProduct(lead)}>
+                {lead.hasOptions ? "Composer" : "Ajouter au panier"} <span className="ar">→</span>
+              </button>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      <section id="bowl" className="cs-sec cs-grain scroll-mt-28 bg-night-2 text-paper-2">
+        <div className="cs-wrap">
+          <Reveal>
+            <div className="cs-head">
+              <div>
+                <div className="cs-idx !text-saffron">Bowls à composer</div>
+                <h2 className="cs-big mt-3.5 text-cream">
+                  Votre bowl,
+                  <br />
+                  <span className="text-terracotta">votre façon</span>
+                </h2>
               </div>
-              <div className="mt-4 flex justify-end">
-                <Link className={`${btn} w-full sm:w-auto`} to="/carte">
-                  Voir la carte
+              <p className="max-w-[34ch] text-paper-2/70">Vous choisissez, vous personnalisez, vous retirez au comptoir.</p>
+            </div>
+            <div className="grid grid-cols-1 gap-0 border-t border-paper-2/15 sm:grid-cols-2 md:grid-cols-4">
+              {[
+                ["La base", "Riz blanc inclus · riz Jollof +1 €"],
+                ["La viande", "Au choix"],
+                ["La sauce", "Au choix"],
+                ["Le side", "Au choix"],
+              ].map(([title, text], index) => (
+                <div
+                  key={title}
+                  className={`px-0 py-8 md:pr-8 ${index > 0 ? "border-t border-paper-2/15 sm:border-t-0 md:border-l md:border-paper-2/15 md:pl-8" : ""} ${index % 2 === 1 ? "sm:pl-6 md:pl-8" : ""} ${index >= 2 ? "sm:border-t sm:border-paper-2/15 md:border-t-0" : ""}`}
+                >
+                  <h3 className="text-xl font-black uppercase tracking-[-0.02em] text-cream sm:text-2xl">{title}</h3>
+                  <p className="mt-1.5 text-[15px] text-paper-2/65">{text}</p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-16 flex flex-wrap items-center justify-between gap-5 border-t border-paper-2/15 pt-8">
+              <div>
+                <small className="block text-[11px] font-bold uppercase tracking-[0.24em] text-paper-2/55">Bowl à composer</small>
+                <span className="text-4xl font-black tracking-[-0.02em] text-saffron">13,90 €</span>
+              </div>
+              <Link className="cs-btn" to="/carte?categorie=bowls">
+                Composer mon bowl <span className="ar">→</span>
+              </Link>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      <section id="midi" className="cs-sec scroll-mt-28">
+        <div className="cs-wrap">
+          <Reveal>
+            <div className="cs-head">
+              <div>
+                <div className="cs-idx">Le midi</div>
+                <h2 className="cs-big">Menus midi</h2>
+              </div>
+              <p className="max-w-[30ch] text-ink-soft">Trois formules pour la pause déjeuner.</p>
+            </div>
+            <div className="border-t-2 border-ink">
+              {[
+                ["Bowl au choix + boisson", "Formule midi", "14,90 €"],
+                ["Combo étudiant + boisson", "Formule midi", "9,90 €"],
+                ["Spice Wings Combo", "Wings + side + boisson", "13,50 €"],
+              ].map(([title, note, price]) => (
+                <Link
+                  key={title}
+                  className="grid grid-cols-1 items-center gap-2 border-b border-line py-4 transition-[padding,background] hover:bg-terracotta/5 hover:pl-3 sm:grid-cols-[1fr_auto] sm:gap-6 md:gap-8 md:py-5"
+                  to="/carte?categorie=midi"
+                >
+                  <span>
+                    <span className="block text-[clamp(20px,5.5vw,42px)] font-black uppercase leading-none tracking-[-0.03em]">
+                      {title}
+                    </span>
+                    <small className="mt-1 block text-[11px] font-bold uppercase tracking-[0.22em] text-ink-soft">{note}</small>
+                  </span>
+                  <span className="text-[clamp(26px,4vw,48px)] font-light tracking-[-0.03em] text-ink">
+                    {price}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      {carteSections.length ? (
+        <section id="carte-apercu" className="cs-sec cs-grain scroll-mt-28 bg-night text-paper-2">
+          <div className="cs-wrap">
+            <Reveal>
+              <div className="cs-head !mb-8 md:!mb-10">
+                <div>
+                  <div className="cs-idx !text-saffron">La carte</div>
+                  <h2 className="cs-big mt-3.5 text-cream">
+                    Toute
+                    <br />
+                    la carte
+                  </h2>
+                </div>
+                <Link className="cs-ul text-paper-2" to="/carte">
+                  Voir la carte →
                 </Link>
               </div>
-            </div>
+              <div className="cs-carte">
+                {carteSections.map(([name, products]) => (
+                  <div key={name} className="cs-cat">
+                    <h4>{name}</h4>
+                    {products.slice(0, 6).map((product) => (
+                      <Link key={product.id} className="cs-it" to={`/produit/${product.slug}`}>
+                        <span>
+                          <b>
+                            {shortName(product.name)}
+                            {isVeggie(product) ? <span className="cs-vg">Veggie</span> : null}
+                          </b>
+                          <em>{product.description}</em>
+                        </span>
+                        <span className="cs-it__p">{product.priceLabel || "—"}</span>
+                      </Link>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </Reveal>
           </div>
-        </Reveal>
-      </section>
+        </section>
+      ) : null}
 
-      <section id="histoire" className="scroll-mt-24 bg-night text-cream">
-        <Reveal className="mx-auto grid max-w-6xl items-center gap-6 px-4 py-8 md:px-5 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-8 lg:py-10">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-terracotta">Histoire</p>
-            <h2 className="mt-3 font-display text-[clamp(2.1rem,8vw,3.75rem)] leading-[0.92]">
-              Le goût voyage <span className="italic text-terracotta">autrement</span>
-            </h2>
-            <div className="mt-6 space-y-4 text-base leading-relaxed text-cream/75">
-              <p>
-                ALLOKODRONE, c'est une cuisine africaine faite maison, inspirée des recettes qui accompagnent les repas de famille, les moments entre amis et les grandes occasions.
-              </p>
-              <p>
-                Notre carte met à l'honneur des plats riches en caractère : viandes braisées, marinades travaillées, sauces parfumées et accompagnements emblématiques.
-              </p>
-            </div>
-            <p className="mt-6 font-display text-2xl leading-tight sm:text-3xl">
-              ALLOKODRONE, la cuisine africaine d'aujourd'hui.
+      <section id="histoire" className="scroll-mt-28 py-14 md:py-20">
+        <div className="cs-wrap grid items-center gap-8 md:grid-cols-2 md:gap-12">
+          <Reveal>
+            <div className="cs-idx">Histoire</div>
+            <p className="cs-big mt-3 text-[clamp(40px,6vw,88px)] text-ink">
+              La cuisine africaine <span className="text-terracotta">d&apos;aujourd&apos;hui.</span>
             </p>
-            <Link className={`${btnGhost} mt-6`} to="/concept">Lire l'histoire</Link>
-          </div>
-          <span className="block overflow-hidden rounded-bl-[2rem] lg:rounded-bl-[3rem]">
-            <img
-              className="bowl-motion aspect-[5/4] w-full object-cover object-center"
-              src={`${import.meta.env.BASE_URL}images/bowl.jpg`}
-              alt="Bowl ALLOKODRONE"
-              loading="lazy"
-            />
-          </span>
-        </Reveal>
-      </section>
-
-      <section id="avis" className="scroll-mt-24 bg-paper-2">
-        <Reveal className="mx-auto max-w-6xl px-4 py-8 md:px-5 lg:py-10">
-          <div className="flex flex-wrap items-end justify-between gap-5">
-            <div className="max-w-2xl">
-              <p className="text-xs font-medium uppercase tracking-[0.18em] text-terracotta">Avis</p>
-              <h2 className="mt-3 font-display text-[clamp(2.1rem,8vw,3.75rem)] leading-[0.92] text-ink">
-                Ils ont goûté, <span className="italic text-terracotta">ils témoignent</span>
-              </h2>
+            <p className="mt-3 max-w-[52ch] text-[15px] text-ink-soft">
+              ALLOKODRONE, c&apos;est une cuisine africaine faite maison, inspirée des recettes qui accompagnent les repas de
+              famille, les moments entre amis et les grandes occasions.
+            </p>
+            <p className="mt-3 max-w-[52ch] text-[15px] text-ink-soft">
+              Notre carte met à l&apos;honneur des plats riches en caractère : viandes braisées, marinades travaillées, sauces
+              parfumées et accompagnements emblématiques.
+            </p>
+            <div className="mt-6">
+              <Link className="cs-ul" to="/concept">
+                Le goût voyage autrement →
+              </Link>
             </div>
-            {data?.avis && data.avis.count > 0 && data.avis.average != null ? (
-              <div className="rounded-xl border border-line bg-cream px-5 py-4">
-                <p className="font-display text-4xl leading-none text-ink">
-                  {String(data.avis.average).replace(".", ",")}
-                </p>
-                <HomeStars value={Math.round(data.avis.average)} label={`${String(data.avis.average).replace(".", ",")} sur 5`} />
-                <p className="mt-2 text-sm text-ink-soft">{data.avis.count} avis</p>
-              </div>
-            ) : null}
-          </div>
-
-          {googleReviews.length || data?.avis?.reviews?.length ? (
-            <ul className="mt-7 grid gap-4 md:grid-cols-3">
-              {googleReviews.map((item) => (
-                <li key={`google-${item.author}`}>
-                  <HomeQuoteCard author={item.author} source={restaurant?.review.source ?? "Google"} body={item.quote} />
-                </li>
-              ))}
-              {data?.avis?.reviews?.map((item) => (
-                <li key={item.id}>
-                  <HomeReviewCard review={item} />
-                </li>
-              ))}
-            </ul>
-          ) : null}
-
-          <div className="mt-6 flex flex-wrap justify-center gap-3">
-            {googleReviewUrl ? (
-              <a className={`${btn} min-w-56 gap-2`} href={googleReviewUrl} target="_blank" rel="noopener noreferrer">
-                Laisser un avis Google <ArrowMark />
-              </a>
-            ) : null}
-            <Link className={`${btnLine} min-w-40`} to="/avis">
-              Tous les avis
-            </Link>
-          </div>
-        </Reveal>
+          </Reveal>
+          <Reveal>
+            <div className="relative">
+              <img
+                className="aspect-[4/5] w-full object-cover"
+                src={asset("images/bowl.jpg")}
+                alt="Bowl ALLOKODRONE"
+                loading="lazy"
+              />
+              <span className="absolute right-0 top-5 bg-terracotta px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.22em] text-white">
+                Fait maison
+              </span>
+            </div>
+          </Reveal>
+        </div>
       </section>
 
-      {restaurant ? (
-        <section id="contact" className="scroll-mt-24 bg-paper">
-          <Reveal className="mx-auto max-w-6xl px-4 py-8 sm:py-10 lg:px-8">
-            <div className="grid items-center gap-5 md:grid-cols-2 md:gap-6">
-              <div className="overflow-hidden rounded-2xl bg-[#1a110d]">
-                <img
-                  className="aspect-[4/3] w-full object-cover object-center"
-                  src={`${import.meta.env.BASE_URL}images/storefront.jpg`}
-                  alt="Devanture ALLOKODRONE, 24 rue Emmanuel Arago à Noisy-le-Sec"
-                  loading="lazy"
-                />
-              </div>
-              <div className="min-w-0 text-ink lg:py-2">
-                <div className="flex items-center gap-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-terracotta">Contact</p>
-                  <span className="h-px w-12 bg-terracotta sm:w-16" aria-hidden="true" />
-                </div>
-                <h2 className="mt-3 font-display text-3xl leading-[0.92] sm:text-4xl lg:text-5xl">Nous trouver</h2>
-                <ul className="mt-7 space-y-3.5 text-[0.95rem] leading-relaxed text-ink">
-                  <li className="flex items-start gap-3">
-                    <PinMark className="mt-0.5 h-5 w-5 shrink-0 text-terracotta" />
-                    <span>{restaurant.address}</span>
-                  </li>
-                  {(restaurant.hoursLines ?? [restaurant.hoursLabel]).map((line) => (
-                    <li key={line} className="flex items-start gap-3">
-                      <CalendarMark className="mt-0.5 h-5 w-5 shrink-0 text-terracotta" />
-                      <span>{line.replace(/ · /g, " : ")}</span>
-                    </li>
-                  ))}
-                  <li className="flex items-start gap-3">
-                    <BagMark className="mt-0.5 h-5 w-5 shrink-0 text-terracotta" />
-                    <span>
-                      Retrait au comptoir
-                      {restaurant.deliveryOpen ? " · Livraison ouverte" : " · Livraison fermée"}
-                    </span>
-                  </li>
-                </ul>
-                <div className="mt-6 flex flex-wrap items-center gap-2.5">
-                  <a className={`${btn} gap-2`} href={restaurant.maps} target="_blank" rel="noopener noreferrer">
-                    Itinéraire
-                    <ArrowMark />
-                  </a>
-                  <span className="inline-flex flex-wrap items-center gap-2.5">
-                    <a
-                      className={`${btnLine} gap-2`}
-                      href={restaurant.instagram}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <InstagramMark />
-                      Instagram
-                    </a>
-                    <Link className={`${btnLine} gap-2`} to="/contact">
-                      <InfoMark />
-                      Plus d&apos;infos
-                    </Link>
-                  </span>
-                </div>
+      <section id="avis" className="scroll-mt-28 border-y border-line py-14 md:py-20">
+        <div className="cs-wrap">
+          <Reveal>
+            <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-[auto_1fr] md:gap-12">
+              <span className="text-[88px] font-black leading-[0.7] text-terracotta md:text-[220px]" aria-hidden="true">
+                “
+              </span>
+              <div>
+                <div className="cs-idx">Ils ont goûté, ils témoignent</div>
+                <blockquote className="mt-4 text-[clamp(24px,6vw,54px)] font-black uppercase leading-none tracking-[-0.03em]">
+                  {restaurant?.review.quote ||
+                    "Une vraie découverte ! Les saveurs sont au rendez-vous, le pulled beef yassa est incroyable et l'accueil est top."}
+                </blockquote>
+                <cite className="mt-6 block text-[11.5px] font-bold not-italic uppercase tracking-[0.24em] text-ink-soft">
+                  <b className="text-ink">{restaurant?.review.author || "Sarah"}</b> —{" "}
+                  {restaurant?.review.place || "Noisy-le-Sec"} · {restaurant?.review.source || "Google"} ·{" "}
+                  <Link className="underline" to="/avis">
+                    Tous les avis
+                  </Link>
+                </cite>
               </div>
             </div>
           </Reveal>
+        </div>
+      </section>
+
+      {restaurant ? (
+        <section id="contact" className="cs-sec cs-grain scroll-mt-28 overflow-hidden bg-night text-paper-2">
+          <div className="cs-wrap">
+            <Reveal>
+              <div className="cs-idx !text-saffron">Le spot</div>
+              <div className="cs-big mt-4 text-[clamp(42px,12vw,210px)] text-cream">
+                Noisy-<span className="cs-out text-transparent [-webkit-text-stroke:1.5px_var(--color-saffron)]">le-Sec</span>
+              </div>
+              <div className="mt-10 grid grid-cols-1 border-t border-paper-2/15 md:grid-cols-[1.2fr_1fr_1fr]">
+                <div className="border-paper-2/15 py-10 md:border-r md:pr-9">
+                  <h3 className="mb-4 text-[11px] font-bold uppercase tracking-[0.26em] text-saffron">Adresse</h3>
+                  <p className="text-[26px] font-black uppercase leading-tight tracking-[-0.02em] text-cream">
+                    {restaurant.address.replace(", ", "\n").split("\n").map((line) => (
+                      <span key={line} className="block">
+                        {line}
+                      </span>
+                    ))}
+                  </p>
+                  <div className="mt-8 flex flex-wrap gap-3.5">
+                    <Link className="cs-btn" to="/carte">
+                      Commander <span className="ar">→</span>
+                    </Link>
+                    <a className="cs-btn cs-btn-ln" href={restaurant.maps} target="_blank" rel="noopener noreferrer">
+                      Itinéraire
+                    </a>
+                  </div>
+                </div>
+                <div className="border-paper-2/15 py-10 md:border-r md:px-9">
+                  <h3 className="mb-4 text-[11px] font-bold uppercase tracking-[0.26em] text-saffron">Horaires</h3>
+                  {(restaurant.hoursLines ?? [restaurant.hoursLabel]).map((line) => {
+                    const [label, value] = line.split(" · ");
+                    return (
+                      <div key={line} className="flex justify-between gap-3 border-b border-paper-2/15 py-2.5 text-paper-2/80">
+                        <span>{label}</span>
+                        <span>{value || line}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="py-10 md:pl-9">
+                  <h3 className="mb-4 text-[11px] font-bold uppercase tracking-[0.26em] text-saffron">Services</h3>
+                  <div className="flex justify-between gap-3 border-b border-paper-2/15 py-2.5">
+                    <span>Retrait au comptoir</span>
+                    <em className="not-italic font-bold text-saffron">Disponible</em>
+                  </div>
+                  <div className="flex justify-between gap-3 border-b border-paper-2/15 py-2.5">
+                    <span>Livraison</span>
+                    <em className={`not-italic ${restaurant.deliveryOpen ? "font-bold text-saffron" : "font-medium text-paper-2/40"}`}>
+                      {restaurant.deliveryOpen ? "Ouverte" : "Fermée pour le moment"}
+                    </em>
+                  </div>
+                  <div className="flex justify-between gap-3 border-b border-paper-2/15 py-2.5">
+                    <span>Instagram</span>
+                    <a className="font-bold not-italic text-saffron" href={restaurant.instagram} target="_blank" rel="noopener noreferrer">
+                      @alloko_drone
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </Reveal>
+          </div>
         </section>
       ) : null}
     </>
-  );
-}
-
-function HomeStars({ value, label }: { value: number; label: string }) {
-  return (
-    <span className="mt-2 inline-flex gap-1.5" role="img" aria-label={label}>
-      {[1, 2, 3, 4, 5].map((star) => (
-        <svg key={star} viewBox="0 0 24 24" className={`h-4 w-4 ${star <= value ? "text-terracotta" : "text-line"}`} aria-hidden="true">
-          <path fill="currentColor" d="M12 2.6 14.6 8.7l6.6.6-5 4.3 1.5 6.4L12 16.8 6.3 20l1.5-6.4-5-4.3 6.6-.6L12 2.6z" />
-        </svg>
-      ))}
-    </span>
-  );
-}
-
-function HomeReviewCard({ review }: { review: HomeReview }) {
-  return (
-    <HomeQuoteCard
-      author={review.author}
-      source={review.verified ? "Achat vérifié" : `Avis client · ${review.dateLabel}`}
-      body={review.body}
-    />
-  );
-}
-
-function HomeQuoteCard({ author, source, body }: { author: string; source: string; body: string }) {
-  return (
-    <article className="flex h-full min-h-44 flex-col rounded-xl border border-line bg-cream px-5 py-5 shadow-sm transition-[border-color,transform] duration-300 hover:-translate-y-0.5 hover:border-terracotta/40">
-      <span className="font-display text-5xl leading-[0.7] text-terracotta" aria-hidden="true">“</span>
-      <p className="mt-3 flex-1 text-base leading-relaxed text-ink">« {body} »</p>
-      <footer className="mt-5 border-t border-line pt-3">
-        <p className="text-sm font-medium text-ink">{author}</p>
-        <p className="text-xs text-ink-soft">{source}</p>
-      </footer>
-    </article>
-  );
-}
-
-function SignatureFilm({ src, poster, label }: { src: string; poster?: string; label: string }) {
-  const ref = useRef<HTMLVideoElement>(null);
-  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-  useEffect(() => {
-    const node = ref.current;
-    if (!node || reduce) return;
-    const observer = new IntersectionObserver(([entry]) => {
-      if (!entry?.isIntersecting) {
-        node.pause();
-        return;
-      }
-      void node.play().catch(() => undefined);
-    }, { threshold: 0.45 });
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [reduce]);
-
-  if (reduce && poster) {
-    return <img className="signature-diagonal__media" src={poster} alt={label} />;
-  }
-
-  return (
-    <video
-      ref={ref}
-      className="signature-diagonal__media"
-      src={src}
-      poster={poster}
-      muted
-      loop
-      playsInline
-      preload="metadata"
-      aria-label={label}
-    />
-  );
-}
-
-const CATEGORY_IMAGES: Record<string, string> = {
-  burgers: "/images/burger.jpg",
-  bowls: "/images/bowl.jpg",
-  sides: "/images/wings.jpg",
-  plats: "/images/bowl.jpg",
-  boissons: "/images/alloko.jpg",
-  desserts: "/images/alloko.jpg",
-  midi: "/images/bowl.jpg",
-};
-
-function CategoryMark({ flip }: { flip?: boolean }) {
-  return (
-    <span className={`category-mark ${flip ? "category-mark--flip" : ""}`} aria-hidden="true">
-      <svg viewBox="0 0 24 22" className="h-4 w-4 sm:h-[1.15rem] sm:w-[1.15rem]">
-        <path
-          d="M12 2.8 21.2 18.6H2.8L12 2.8Z"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.4"
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
-      </svg>
-    </span>
-  );
-}
-
-function CategoryRow({ category, index }: { category: Category; index: number }) {
-  const crop = category.slug === "bowls" || category.slug === "plats" || category.slug === "midi" ? "object-[center_22%]" : "object-center";
-  const image = category.image || CATEGORY_IMAGES[category.slug] || null;
-  const flip = index % 2 === 1;
-  return (
-    <Link
-      className="group flex w-full items-start gap-2.5 px-4 py-4 sm:gap-3.5 sm:px-5"
-      to={`/carte?categorie=${category.slug}`}
-    >
-      <CategoryMark flip={flip} />
-      {image ? (
-        <span className="mt-0.5 block h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-paper-2 sm:h-16 sm:w-16">
-          <img
-            className={`h-full w-full object-cover transition duration-700 ease-out group-hover:scale-105 ${crop}`}
-            src={image}
-            alt=""
-            loading="lazy"
-          />
-        </span>
-      ) : (
-        <span className="mt-0.5 flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-paper-2 font-display text-xl text-terracotta sm:h-16 sm:w-16" aria-hidden="true">
-          {category.name.trim().charAt(0)}
-        </span>
-      )}
-      <span className="min-w-0 flex-1">
-        <span className="flex items-baseline justify-between gap-3">
-          <span className="font-display text-2xl leading-none text-ink transition-colors duration-300 group-hover:text-terracotta sm:text-3xl">
-            {category.name}
-          </span>
-          <span className="w-8 shrink-0 text-right text-xs tabular-nums text-ink-soft transition-colors duration-300 group-hover:text-terracotta">
-            {String(index + 1).padStart(2, "0")}
-          </span>
-        </span>
-        {category.description ? (
-          <span className="mt-2 block text-sm leading-relaxed text-ink-soft">
-            {category.description}
-          </span>
-        ) : null}
-      </span>
-    </Link>
-  );
-}
-
-function Feature({ lead, large = false, film = null }: { lead: Product; large?: boolean; film?: string | null }) {
-  const crop = lead.slug === "bowl" ? "object-[center_22%]" : "object-center";
-  return (
-    <Link
-      className={large ? "group block w-full min-w-0" : "group flex w-full items-start gap-3 py-3.5"}
-      to={`/produit/${lead.slug}`}
-    >
-      {large ? (
-        <span className="signature-diagonal">
-          <span className="signature-diagonal__stage">
-            {film ? (
-              <SignatureFilm src={film} poster={lead.image ?? undefined} label={lead.name} />
-            ) : lead.image ? (
-              <img
-                className={`signature-diagonal__media ${crop}`}
-                src={lead.image}
-                alt=""
-                loading="lazy"
-              />
-            ) : null}
-          </span>
-        </span>
-      ) : lead.image ? (
-        <span className="block h-14 w-14 shrink-0 overflow-hidden bg-night-2 sm:h-16 sm:w-16">
-          <img
-            className={`h-full w-full object-cover transition duration-700 ease-out group-hover:scale-105 ${crop}`}
-            src={lead.image}
-            alt=""
-            loading="lazy"
-          />
-        </span>
-      ) : (
-        <span className="flex h-14 w-14 shrink-0 items-center justify-center bg-night-2 font-display text-xl text-terracotta sm:h-16 sm:w-16" aria-hidden="true">
-          {lead.name.trim().charAt(0)}
-        </span>
-      )}
-      <span className={large ? "mt-4 block min-w-0 px-0.5 sm:mt-5" : "min-w-0 flex-1"}>
-        <span className="text-[0.65rem] uppercase tracking-[0.16em] text-terracotta sm:text-xs">{lead.categoryName}</span>
-        <span className={`mt-1 block font-display leading-tight text-ink group-hover:text-terracotta ${large ? "text-2xl sm:text-3xl" : "text-xl sm:text-2xl"}`}>
-          {lead.name}
-        </span>
-        <span className={`mt-1.5 text-sm leading-relaxed text-ink-soft ${large ? "line-clamp-3" : "line-clamp-2"}`}>{lead.description}</span>
-      </span>
-    </Link>
   );
 }

@@ -125,7 +125,7 @@ def _admin_document(title, body, flash, current, csrf, notify_n=0, role="admin",
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{esc(title)} — ALLOKODRONE</title>
-  <meta name="theme-color" content="#f5dfbc">
+  <meta name="theme-color" content="#f6eee0">
   <link rel="icon" href="/images/logo-dark.png" type="image/png">
   <link rel="stylesheet" href="/css/fonts.css">
   {extra_head}
@@ -211,7 +211,7 @@ def login_page(title, body, flash=""):
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{esc(title)} — ALLOKODRONE</title>
-  <meta name="theme-color" content="#f5dfbc">
+  <meta name="theme-color" content="#f6eee0">
   <link rel="icon" href="/images/logo-dark.png" type="image/png">
   <link rel="stylesheet" href="/css/fonts.css">
   <link rel="stylesheet" href="/css/app.css">
@@ -263,7 +263,7 @@ def page(title, body, *, cart_n=0, flash="", user=None, admin=False, current="",
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{esc(title)} — ALLOKODRONE</title>
   <meta name="description" content="Commandez chez ALLOKODRONE, afro street food à Noisy-le-Sec. Retrait et livraison.">
-  <meta name="theme-color" content="#f5dfbc">
+  <meta name="theme-color" content="#f6eee0">
   <link rel="icon" href="/images/logo-dark.png" type="image/png">
   <link rel="stylesheet" href="/css/fonts.css">
   {extra_head}

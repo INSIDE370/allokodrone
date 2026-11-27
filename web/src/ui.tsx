@@ -2,11 +2,11 @@ import { useEffect, type ReactNode } from "react";
 import { Link } from "react-router";
 
 export const btn =
-  "inline-flex min-h-10 items-center justify-center rounded-xl border border-cream/80 bg-terracotta px-5 text-sm font-semibold tracking-wide text-cream transition-colors duration-300 hover:bg-terracotta-deep disabled:cursor-not-allowed disabled:opacity-40";
+  "inline-flex min-h-11 items-center justify-center gap-3 rounded-full border-0 bg-terracotta px-6 text-xs font-bold uppercase tracking-[0.2em] text-white transition-colors duration-300 hover:bg-saffron hover:text-ink disabled:cursor-not-allowed disabled:opacity-40";
 export const btnGhost =
-  "inline-flex min-h-10 items-center justify-center rounded-xl border border-cream/75 bg-transparent px-5 text-sm font-semibold tracking-wide text-cream transition-colors duration-300 hover:border-cream hover:bg-cream/5 disabled:opacity-40";
+  "inline-flex min-h-11 items-center justify-center gap-3 rounded-full border border-cream/70 bg-transparent px-6 text-xs font-bold uppercase tracking-[0.2em] text-cream transition-colors duration-300 hover:bg-paper-2 hover:text-ink disabled:opacity-40";
 export const btnLine =
-  "inline-flex min-h-10 items-center justify-center rounded-xl border border-ink/30 bg-cream px-5 text-sm font-semibold tracking-wide text-ink transition-colors duration-300 hover:border-ink disabled:opacity-40";
+  "inline-flex min-h-11 items-center justify-center gap-3 rounded-full border border-ink/25 bg-transparent px-6 text-xs font-bold uppercase tracking-[0.2em] text-ink transition-colors duration-300 hover:bg-paper-2 disabled:opacity-40";
 export const input =
   "min-h-12 w-full rounded-xl border border-line bg-cream px-3 text-base text-ink outline-none";
 export const field = "mt-4 flex flex-col gap-1.5 text-sm";
